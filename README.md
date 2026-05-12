@@ -146,7 +146,6 @@ The app does not ship with an API key. You need to provide your own Google Gemin
 |---|---|---|
 | 3 张 | 10 | 3 张 |
 | 11 张 | 10 | 先跑 10 张，1 张排队 |
-| 11 张 | 4 | 每次最多 4 张 |
 
 ## Data and Privacy
 
