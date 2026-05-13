@@ -130,6 +130,7 @@ Relay API mode can also fetch and use compatible model names from your provider.
 第一次打开时，如果 macOS 提示无法确认开发者，在 Finder 里右键 App，选择「打开」，再确认一次即可。
 
 ### Windows
+windos的配置需要打开env文件，将HTTPS_PROXY= 和HTTP_PROXY= 等号之后的服务代理改成自己的服务代理，才能使用原生api
 
 Open the `BananaBatchStudio-Windows-x64` package folder and run:
 
