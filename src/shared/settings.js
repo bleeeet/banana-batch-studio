@@ -11,6 +11,34 @@ export const GEMINI_IMAGE_MODELS = [
   }
 ];
 
+export const OPENAI_IMAGE_MODELS = [
+  {
+    id: 'gpt-image-2',
+    label: 'GPT Image 2',
+    sizes: ['auto', '1024x1024', '1536x1024', '1024x1536']
+  },
+  {
+    id: 'gpt-image-1.5',
+    label: 'GPT Image 1.5',
+    sizes: ['auto', '1024x1024', '1536x1024', '1024x1536']
+  },
+  {
+    id: 'gpt-image-1',
+    label: 'GPT Image 1',
+    sizes: ['auto', '1024x1024', '1536x1024', '1024x1536']
+  },
+  {
+    id: 'gpt-image-1-mini',
+    label: 'GPT Image 1 Mini',
+    sizes: ['auto', '1024x1024', '1536x1024', '1024x1536']
+  },
+  {
+    id: 'chatgpt-image-latest',
+    label: 'ChatGPT Image Latest',
+    sizes: ['auto', '1024x1024', '1536x1024', '1024x1536']
+  }
+];
+
 export const SUPPORTED_ASPECT_RATIOS = [
   '1:1',
   '1:4',
@@ -40,27 +68,35 @@ export const API_PROVIDER_OPTIONS = [
     label: 'Google 官方 API'
   },
   {
+    id: 'openai',
+    label: 'OpenAI 原生 API'
+  },
+  {
     id: 'geminiProxy',
-    label: 'Gemini 兼容中转'
+    label: '兼容中转 API'
   }
 ];
+
+export function isKnownApiProvider(apiProvider) {
+  return API_PROVIDER_OPTIONS.some((provider) => provider.id === apiProvider);
+}
 
 function trimSlashes(value) {
   return String(value || '').trim().replace(/^\/+|\/+$/g, '');
 }
 
 function normalizeApiProvider(input = {}) {
-  const apiProvider = API_PROVIDER_OPTIONS.some((provider) => provider.id === input.apiProvider)
-    ? input.apiProvider
-    : 'official';
+  const apiProvider = isKnownApiProvider(input.apiProvider) ? input.apiProvider : 'official';
   const apiBaseUrl = String(input.apiBaseUrl || '').trim().replace(/\/+$/, '');
   const apiVersion = String(input.apiVersion || 'v1beta').trim() || 'v1beta';
   const apiHeaderName = String(input.apiHeaderName || '').trim();
   const apiHeaderValue = String(input.apiHeaderValue || '').trim();
+  const apiKeyProfileId = String(input.apiKeyProfileId || '').trim();
 
-  if (apiProvider === 'official') {
+  if (apiProvider === 'official' || apiProvider === 'openai') {
     return {
       apiProvider,
+      apiKeyProfileId,
       apiBaseUrl: '',
       apiVersion: '',
       apiHeaderName: '',
@@ -77,6 +113,7 @@ function normalizeApiProvider(input = {}) {
 
   return {
     apiProvider,
+    apiKeyProfileId,
     apiBaseUrl,
     apiVersion,
     apiHeaderName,
@@ -85,10 +122,9 @@ function normalizeApiProvider(input = {}) {
 }
 
 export function buildApiPreviewUrl(input = {}) {
-  const apiProvider = API_PROVIDER_OPTIONS.some((provider) => provider.id === input.apiProvider)
-    ? input.apiProvider
-    : 'official';
+  const apiProvider = isKnownApiProvider(input.apiProvider) ? input.apiProvider : 'official';
   if (apiProvider === 'official') return 'https://generativelanguage.googleapis.com/v1beta/models';
+  if (apiProvider === 'openai') return 'https://api.openai.com/v1/models';
 
   const apiBaseUrl = String(input.apiBaseUrl || '').trim().replace(/\/+$/, '');
   const apiVersion = trimSlashes(input.apiVersion || 'v1beta') || 'v1beta';
@@ -101,7 +137,15 @@ export function getSizeOptionsForModel(modelId) {
   return model ? model.sizes : [];
 }
 
+export function getSizeOptionsForOpenAIModel(modelId) {
+  const model = OPENAI_IMAGE_MODELS.find((item) => item.id === modelId);
+  return model ? model.sizes : OPENAI_IMAGE_MODELS[0].sizes;
+}
+
 export function getSizeOptionsForSettings(input = {}) {
+  if (input.apiProvider === 'openai') {
+    return getSizeOptionsForOpenAIModel(input.model);
+  }
   if (input.apiProvider === 'geminiProxy') {
     const officialOptions = getSizeOptionsForModel(input.model);
     return officialOptions.length ? officialOptions : RELAY_IMAGE_SIZE_OPTIONS;
@@ -116,8 +160,9 @@ export function isSupportedImage(fileName = '') {
 
 export function normalizeGenerationSettings(input = {}) {
   const provider = normalizeApiProvider(input);
-  const model = input.model || GEMINI_IMAGE_MODELS[0].id;
-  const aspectRatio = input.aspectRatio || '1:1';
+  const defaultModel = provider.apiProvider === 'openai' ? OPENAI_IMAGE_MODELS[0].id : GEMINI_IMAGE_MODELS[0].id;
+  const model = input.model || defaultModel;
+  const aspectRatio = provider.apiProvider === 'openai' ? 'auto' : input.aspectRatio || '1:1';
   const sizeOptions = getSizeOptionsForSettings({ ...input, ...provider, model });
   const imageSize = input.imageSize || sizeOptions[0];
   const temperature = Number.isFinite(Number(input.temperature)) ? Number(input.temperature) : 1;
@@ -134,7 +179,11 @@ export function normalizeGenerationSettings(input = {}) {
     throw new Error(`Model ${model} is not supported by this app.`);
   }
 
-  if (!SUPPORTED_ASPECT_RATIOS.includes(aspectRatio)) {
+  if (provider.apiProvider === 'openai' && !OPENAI_IMAGE_MODELS.some((item) => item.id === model)) {
+    throw new Error(`Model ${model} is not supported by this app.`);
+  }
+
+  if (provider.apiProvider !== 'openai' && !SUPPORTED_ASPECT_RATIOS.includes(aspectRatio)) {
     throw new Error(`Aspect ratio ${aspectRatio} is not supported.`);
   }
 

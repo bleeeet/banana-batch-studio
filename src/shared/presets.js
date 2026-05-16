@@ -44,6 +44,61 @@ export function addPreset(presets, input) {
   return [...presets, buildPreset(input)];
 }
 
+function presetFingerprint(preset) {
+  const built = buildPreset(preset);
+  return JSON.stringify({
+    mode: built.mode,
+    prompt: built.prompt,
+    settings: built.settings
+  });
+}
+
+export function serializePresets(presets) {
+  return JSON.stringify(
+    {
+      schemaVersion: 1,
+      app: 'Banana Batch Studio',
+      exportedAt: new Date().toISOString(),
+      presets: presets.map((preset) => buildPreset(preset))
+    },
+    null,
+    2
+  );
+}
+
+export function importPresets(currentPresets, rawText) {
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    throw new Error('预设文件不是有效 JSON。');
+  }
+
+  const entries = Array.isArray(data) ? data : data?.presets;
+  if (!Array.isArray(entries)) {
+    throw new Error('预设文件需要包含 presets 数组。');
+  }
+
+  const seen = new Set(currentPresets.map(presetFingerprint));
+  const nextPresets = [...currentPresets];
+  let imported = 0;
+  let skipped = 0;
+
+  for (const entry of entries) {
+    const preset = buildPreset({ ...entry, id: undefined });
+    const key = presetFingerprint(preset);
+    if (seen.has(key)) {
+      skipped += 1;
+      continue;
+    }
+    seen.add(key);
+    nextPresets.push(preset);
+    imported += 1;
+  }
+
+  return { presets: nextPresets, imported, skipped };
+}
+
 export function deletePreset(presets, presetId) {
   const next = presets.filter((preset) => preset.id !== presetId);
   return next.length ? next : DEFAULT_PRESETS;

@@ -96,7 +96,7 @@ describe('generation settings', () => {
       imageSize: '1K'
     });
 
-    expect(API_PROVIDER_OPTIONS.map((provider) => provider.id)).toEqual(['official', 'geminiProxy']);
+    expect(API_PROVIDER_OPTIONS.map((provider) => provider.id)).toEqual(['official', 'openai', 'geminiProxy']);
     expect(settings).toMatchObject({
       apiProvider: 'official',
       apiBaseUrl: '',
@@ -106,7 +106,36 @@ describe('generation settings', () => {
     });
   });
 
-  it('normalizes Gemini-compatible relay API settings', () => {
+  it('normalizes OpenAI native image API settings with OpenAI size options', () => {
+    expect(
+      normalizeGenerationSettings({
+        model: 'gpt-image-1.5',
+        imageSize: '1536x1024',
+        apiProvider: 'openai'
+      })
+    ).toMatchObject({
+      apiProvider: 'openai',
+      model: 'gpt-image-1.5',
+      imageSize: '1536x1024',
+      aspectRatio: 'auto',
+      apiBaseUrl: '',
+      apiVersion: '',
+      apiHeaderName: '',
+      apiHeaderValue: ''
+    });
+  });
+
+  it('rejects Gemini-only sizes for OpenAI native image models', () => {
+    expect(() =>
+      normalizeGenerationSettings({
+        model: 'gpt-image-1.5',
+        imageSize: '1K',
+        apiProvider: 'openai'
+      })
+    ).toThrow(/Image size 1K is not supported/);
+  });
+
+  it('normalizes compatible relay API settings', () => {
     expect(
       normalizeGenerationSettings({
         model: 'gemini-3-pro-image-preview',
@@ -143,7 +172,7 @@ describe('generation settings', () => {
     });
   });
 
-  it('allows relay models that are not bundled in the official picker', () => {
+  it('allows compatible relay models that are not bundled in the default picker', () => {
     expect(
       normalizeGenerationSettings({
         model: 'gemini-2.5-flash-image-preview',

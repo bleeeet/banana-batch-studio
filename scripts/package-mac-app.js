@@ -253,6 +253,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate {
         }
     }
 
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.allow)
+            return
+        }
+
+        if url.host == "127.0.0.1" || url.host == "localhost" {
+            decisionHandler(.allow)
+            return
+        }
+
+        if url.scheme == "http" || url.scheme == "https" {
+            NSWorkspace.shared.open(url)
+            decisionHandler(.cancel)
+            return
+        }
+
+        decisionHandler(.allow)
+    }
+
     private func showError(_ message: String) {
         let alert = NSAlert()
         alert.messageText = "Banana Batch Studio"
@@ -279,9 +299,9 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
   <key>CFBundleIdentifier</key>
   <string>local.gemini-batch-studio</string>
   <key>CFBundleVersion</key>
-  <string>1.0.0</string>
+  <string>2.0.0</string>
   <key>CFBundleShortVersionString</key>
-  <string>1.0.0</string>
+  <string>2.0.0</string>
   <key>CFBundleExecutable</key>
   <string>BananaBatchStudio</string>
   <key>CFBundleIconFile</key>

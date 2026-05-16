@@ -63,7 +63,7 @@ The current release packaging produces three desktop builds:
 - 一张图一张图上传、连线、下载，重复动作很多。
 - Cherry Studio 适合聊天和单次调用，但我需要的是多张图片并行跑同一个提示词。
 
-所以 Banana Batch Studio 的目标很明确：**把“同一个提示词处理一批图片”这件事做得直接一点**。拖进去一批图，添加参考图或垫图，设置提示词和模型参数，启动并发任务，最后下载单图或整个 ZIP。
+所以 Banana Batch Studio 的目标很明确：**把“同一个提示词处理一批图片”这件事做得直接一点**。拖进去一批图，添加参考图或垫图，设置提示词和模型参数，启动并发任务，最后下载单图或整个结果文件夹。
 
 English summary: this app was built for a narrow but real production workflow: applying the same image-generation prompt to many source images, especially for ecommerce product shots and media asset processing.
 
@@ -78,24 +78,24 @@ For: ecommerce teams, designers, video creators, and anyone who needs repeated i
 
 ## Features
 
-| 功能                | 说明                                                         |
-| ------------------- | ------------------------------------------------------------ |
-| 多图拖拽 / 点击选择 | 支持一次拖入多张图片，也可以点击选择图片或整个文件夹         |
-| 图片堆叠预览        | 上传后会在拖入区显示真实图片缩略图，并以叠放卡片形式预览     |
-| 参考图 / 垫图       | 支持为整批主图添加一组参考图，每张主图都会带上同一组参考图和提示词 |
-| 图片格式            | 支持 PNG、JPG、JPEG、WEBP                                    |
-| 实时并发            | 默认最大并发 10，可调整，最高 100                            |
-| Batch 模式          | 支持 Gemini Batch Job，用于更省钱的批量任务                  |
-| API 通道            | 支持 Google 官方 API 和 Gemini 兼容中转 API，可保存中转 API 地址 |
-| 模型列表            | 中转模式可拉取兼容服务的模型列表，并直接选择模型             |
-| 模型参数            | 支持模型、比例、尺寸、Temperature、请求间隔等设置            |
-| 预设管理            | 保存模型、提示词、比例、尺寸、Temperature 和处理模式，支持导入 / 导出 JSON 预设 |
-| 单图操作            | 每张结果图可单独下载，失败项可单独重试                       |
-| ZIP 导出            | 一键导出全部结果图、失败清单和运行配置                       |
-| 多语言界面          | 支持简体中文、繁体中文、English、日本語、한국어              |
-| 画布式流程          | 上传、设置、结果三个模块居中对齐，生成时连接线会显示能量传递动效 |
-| 开发者链接          | 底部固定显示开发者 GitHub 和 X 链接                          |
-| 本地运行            | 本地服务监听 `127.0.0.1:4178`，不需要上传到自建服务器        |
+| 功能 | 说明 |
+|---|---|
+| 多图拖拽 / 点击选择 | 支持一次拖入多张图片，也可以点击选择图片或整个文件夹 |
+| 图片堆叠预览 | 上传后会在拖入区显示真实图片缩略图，并以叠放卡片形式预览 |
+| 参考图 / 垫图 | 支持为整批主图添加一组参考图，每张主图都会带上同一组参考图和提示词 |
+| 图片格式 | 支持 PNG、JPG、JPEG、WEBP |
+| 实时并发 | 默认最大并发 10，可调整，最高 100 |
+| Batch 模式 | 支持 Gemini Batch Job，用于更省钱的批量任务 |
+| API 通道 | 支持 Google 官方 API 和 Gemini 兼容中转 API，可保存中转 API 地址 |
+| 模型列表 | 中转模式可拉取兼容服务的模型列表，并直接选择模型 |
+| 模型参数 | 支持模型、比例、尺寸、Temperature、请求间隔等设置 |
+| 预设管理 | 保存模型、提示词、比例、尺寸、Temperature 和处理模式，支持导入 / 导出 JSON 预设 |
+| 单图操作 | 每张结果图可单独下载，失败项可单独重试 |
+| 文件夹导出 | 一键把全部成功结果图保存到下载文件夹中的普通文件夹 |
+| 多语言界面 | 支持简体中文、繁体中文、English、日本語、한국어 |
+| 画布式流程 | 上传、设置、结果三个模块居中对齐，生成时连接线会显示能量传递动效 |
+| 开发者链接 | 底部固定显示开发者 GitHub 和 X 链接 |
+| 本地运行 | 本地服务监听 `127.0.0.1:4178`，不需要上传到自建服务器 |
 
 Bottom capability labels in the UI:
 
@@ -125,7 +125,7 @@ Relay API mode can also fetch and use compatible model names from your provider.
 7. Enter one shared prompt.
 8. Choose model, aspect ratio, image size, Temperature, request delay, and concurrency.
 9. Click `开始生成`.
-10. Download one image, retry failed items, or export the whole ZIP.
+10. Download one image, retry failed items, edit the saved job prompt, rebuild a task, or export all results as a folder.
 
 第一次打开时，如果 macOS 提示无法确认开发者，在 Finder 里右键 App，选择「打开」，再确认一次即可。
 
@@ -172,11 +172,11 @@ The app does not ship with an API key. You need to provide your own Google Gemin
 
 如果添加了参考图 / 垫图，实时模式和 Batch 模式都会把同一组参考图随每张主图一起提交。适合统一风格、构图、材质、人物或产品视觉方向。
 
-| 上传张数 | 最大并发 | 实际同时运行         |
-| -------- | -------- | -------------------- |
-| 3 张     | 10       | 3 张                 |
-| 11 张    | 10       | 先跑 10 张，1 张排队 |
-| 11 张    | 4        | 每次最多 4 张        |
+| 上传张数 | 最大并发 | 实际同时运行 |
+|---|---|---|
+| 3 张 | 10 | 3 张 |
+| 11 张 | 10 | 先跑 10 张，1 张排队 |
+| 11 张 | 4 | 每次最多 4 张 |
 
 ## Data and Privacy
 
@@ -189,7 +189,7 @@ Banana Batch Studio runs locally. It stores task records and generated files on 
   uploads/       Uploaded source image copies
   outputs/       Generated images
   batch/         Batch mode request files
-  zips/          Exported ZIP files
+  zips/          Legacy ZIP export cache
   jobs.json      Job records
   api-keys.json  API keys, stored as plain JSON
 ```

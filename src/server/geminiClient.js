@@ -147,14 +147,34 @@ export function outputNameForInput(originalName, mimeType = 'image/png') {
   return `${parsed.name}_gemini${extensionForMime(mimeType)}`;
 }
 
+function imagePartFromBytes({ mimeType, bytes }) {
+  return {
+    inlineData: {
+      mimeType,
+      data: bytes.toString('base64')
+    }
+  };
+}
+
+async function imagePartFromFile(file) {
+  const bytes = await readFile(file.path || file.inputPath);
+  return imagePartFromBytes({ mimeType: file.mimeType, bytes });
+}
+
+async function buildImagePromptParts({ prompt, inputPath, mimeType, referenceImages = [] }) {
+  const mainBytes = await readFile(inputPath);
+  const referenceParts = await Promise.all(referenceImages.map((file) => imagePartFromFile(file)));
+  return [{ text: prompt }, imagePartFromBytes({ mimeType, bytes: mainBytes }), ...referenceParts];
+}
+
 export class GeminiClient {
   constructor({ apiKey, settings = {} }) {
     if (!apiKey) throw new Error('Missing Google API key.');
     this.ai = new GoogleGenAI(buildGeminiClientOptions({ apiKey, settings }));
   }
 
-  async generateImageFromFile({ inputPath, mimeType, originalName, prompt, settings, outputDir, abortSignal }) {
-    const bytes = await readFile(inputPath);
+  async generateImageFromFile({ inputPath, mimeType, originalName, prompt, settings, outputDir, abortSignal, referenceImages = [] }) {
+    const parts = await buildImagePromptParts({ prompt, inputPath, mimeType, referenceImages });
     let response;
     try {
       response = await retryTransient(
@@ -164,15 +184,7 @@ export class GeminiClient {
             contents: [
               {
                 role: 'user',
-                parts: [
-                  { text: prompt },
-                  {
-                    inlineData: {
-                      mimeType,
-                      data: bytes.toString('base64')
-                    }
-                  }
-                ]
+                parts
               }
             ],
             config: {
@@ -200,8 +212,14 @@ export class GeminiClient {
 
   async createBatchJob({ job, files }) {
     const requests = [];
+    const referenceImages = job.referenceImages || [];
     for (const item of job.items) {
-      const bytes = await readFile(item.inputPath);
+      const parts = await buildImagePromptParts({
+        prompt: job.prompt,
+        inputPath: item.inputPath,
+        mimeType: item.mimeType,
+        referenceImages
+      });
       requests.push({
         metadata: {
           itemId: item.id,
@@ -210,15 +228,7 @@ export class GeminiClient {
         contents: [
           {
             role: 'user',
-            parts: [
-              { text: job.prompt },
-              {
-                inlineData: {
-                  mimeType: item.mimeType,
-                  data: bytes.toString('base64')
-                }
-              }
-            ]
+            parts
           }
         ],
         config: {

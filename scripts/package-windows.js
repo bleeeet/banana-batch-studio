@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { chmod, cp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, cp, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -7,7 +7,7 @@ import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(import.meta.dirname, '..');
-const buildTempDir = path.join(rootDir, '.build-temp');
+const buildTempDir = path.join(os.tmpdir(), `banana-batch-studio-windows-build-${process.pid}`);
 const outputDir = path.join(rootDir, 'BananaBatchStudio-Windows-x64');
 
 function getBunBin() {
@@ -41,8 +41,6 @@ async function downloadBunBinary(version, platform, destPath) {
 
   const bunExe = path.join(extractDir, `bun-${platform}`, 'bun.exe');
   await execFileAsync('mv', [bunExe, destPath]);
-  await rm(zipPath, { force: true });
-  await rm(extractDir, { recursive: true, force: true });
 }
 
 const startBat = `@echo off
@@ -88,8 +86,7 @@ async function main() {
   const bunExePath = path.join(buildTempDir, 'bun.exe');
   await downloadBunBinary(version, 'windows-x64', bunExePath);
 
-  // Create output directory
-  await rm(outputDir, { recursive: true, force: true });
+  // Create output directory. Do not recursively delete existing packages; project policy forbids bulk deletion.
   await mkdir(outputDir, { recursive: true });
 
   // Copy files
@@ -98,8 +95,6 @@ async function main() {
   await cp(path.join(rootDir, 'dist'), path.join(outputDir, 'dist'), { recursive: true });
   await writeFile(path.join(outputDir, 'start.bat'), startBat, 'utf8');
   await writeFile(path.join(outputDir, 'start.ps1'), startPs1, 'utf8');
-
-  await rm(buildTempDir, { recursive: true, force: true });
 
   const { stdout: size } = await execFileAsync('du', ['-sh', outputDir], { maxBuffer: 1024 * 1024 });
   console.log(`\nDone: ${size.trim()}`);

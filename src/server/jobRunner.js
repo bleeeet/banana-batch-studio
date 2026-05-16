@@ -3,6 +3,7 @@ import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { GeminiClient } from './geminiClient.js';
+import { OpenAIImageClient } from './openaiImageClient.js';
 import { getApiKey } from './keychain.js';
 import { OUTPUT_DIR } from './paths.js';
 import { DEFAULT_REALTIME_CONCURRENCY, DEFAULT_REQUEST_START_DELAY_MS, MAX_REALTIME_CONCURRENCY } from '../shared/settings.js';
@@ -38,6 +39,10 @@ export function getRealtimeStartDelayMs(job) {
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createImageClient({ apiKey, settings }) {
+  return settings?.apiProvider === 'openai' ? new OpenAIImageClient({ apiKey }) : new GeminiClient({ apiKey, settings });
 }
 
 function beginItemRun(itemId) {
@@ -91,7 +96,8 @@ export async function runSingleItemNow({ store, job, item, client, outputDir }) 
       prompt: job.prompt,
       settings: job.settings,
       outputDir,
-      abortSignal
+      abortSignal,
+      referenceImages: job.referenceImages || []
     });
     if (!isCurrentItemRun(item.id, runId)) return;
     store.updateItem(item.id, {
@@ -126,8 +132,8 @@ export async function startRealtimeJob({ store, jobId }) {
 
       while (true) {
         const job = store.getJob(jobId);
-        const apiKey = await getApiKey(job.settings?.apiProvider);
-        const client = new GeminiClient({ apiKey, settings: job.settings });
+        const apiKey = await getApiKey(job.settings?.apiProvider, job.settings?.apiKeyProfileId);
+        const client = createImageClient({ apiKey, settings: job.settings });
         const queuedItems = job.items.filter((item) => item.status === 'queued');
         if (!queuedItems.length) break;
 
@@ -162,8 +168,8 @@ export async function startRealtimeJob({ store, jobId }) {
 export async function submitBatchJob({ store, jobId }) {
   const job = store.getJob(jobId);
   store.updateJob(jobId, { status: 'submitting_batch' });
-  const apiKey = await getApiKey(job.settings?.apiProvider);
-  const client = new GeminiClient({ apiKey, settings: job.settings });
+  const apiKey = await getApiKey(job.settings?.apiProvider, job.settings?.apiKeyProfileId);
+  const client = createImageClient({ apiKey, settings: job.settings });
   try {
     const batch = await client.createBatchJob({ job });
     store.updateJob(jobId, {
@@ -180,8 +186,8 @@ export async function submitBatchJob({ store, jobId }) {
 export async function refreshBatchJob({ store, jobId }) {
   const job = store.getJob(jobId);
   if (!job?.batchName) return job;
-  const apiKey = await getApiKey(job.settings?.apiProvider);
-  const client = new GeminiClient({ apiKey, settings: job.settings });
+  const apiKey = await getApiKey(job.settings?.apiProvider, job.settings?.apiKeyProfileId);
+  const client = createImageClient({ apiKey, settings: job.settings });
   const batch = await client.getBatchJob(job.batchName);
   const state = batch.state || batch.metadata?.state || job.batchState;
 
@@ -221,8 +227,8 @@ export async function rerunSingleItem({ store, jobId, itemId }) {
       const jobOutputDir = path.join(OUTPUT_DIR, jobId);
       await mkdir(jobOutputDir, { recursive: true });
       const job = store.getJob(jobId);
-      const apiKey = await getApiKey(job.settings?.apiProvider);
-      const client = new GeminiClient({ apiKey, settings: job.settings });
+      const apiKey = await getApiKey(job.settings?.apiProvider, job.settings?.apiKeyProfileId);
+      const client = createImageClient({ apiKey, settings: job.settings });
       const item = job.items.find((entry) => entry.id === itemId);
       await runSingleItemNow({ store, job, item, client, outputDir: jobOutputDir });
     } catch (error) {

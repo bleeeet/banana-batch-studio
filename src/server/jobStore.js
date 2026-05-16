@@ -31,7 +31,7 @@ export class JobStore {
     fs.renameSync(tempPath, this.dbPath);
   }
 
-  createJob({ mode, prompt, settings, files }) {
+  createJob({ mode, prompt, settings, files, referenceFiles = [], presetName = '未命名预设' }) {
     const now = new Date().toISOString();
     const jobId = randomUUID();
     this.state.jobs.push({
@@ -39,7 +39,9 @@ export class JobStore {
       mode,
       status: 'queued',
       prompt,
+      presetName: String(presetName || '未命名预设').trim() || '未命名预设',
       settings: clone(settings),
+      referenceImages: clone(referenceFiles),
       batchName: null,
       batchState: null,
       error: null,
@@ -97,6 +99,15 @@ export class JobStore {
       error: patch.error ?? job.error ?? null,
       updatedAt: new Date().toISOString()
     });
+    this.persist();
+    return this.getJob(id);
+  }
+
+  updateJobPrompt(id, prompt) {
+    const job = this.state.jobs.find((entry) => entry.id === id);
+    if (!job) return null;
+    job.prompt = String(prompt || '').trim();
+    job.updatedAt = new Date().toISOString();
     this.persist();
     return this.getJob(id);
   }
@@ -172,6 +183,8 @@ export class JobStore {
   inflateJob(job, items) {
     return {
       ...clone(job),
+      presetName: job.presetName || '未命名预设',
+      referenceImages: clone(job.referenceImages || []),
       items
     };
   }
