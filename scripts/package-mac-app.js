@@ -299,9 +299,9 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
   <key>CFBundleIdentifier</key>
   <string>local.gemini-batch-studio</string>
   <key>CFBundleVersion</key>
-  <string>2.0.0</string>
+  <string>2.0.2</string>
   <key>CFBundleShortVersionString</key>
-  <string>2.0.0</string>
+  <string>2.0.2</string>
   <key>CFBundleExecutable</key>
   <string>BananaBatchStudio</string>
   <key>CFBundleIconFile</key>

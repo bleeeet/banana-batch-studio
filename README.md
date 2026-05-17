@@ -2,6 +2,8 @@
 
 > One prompt. Many images. Local batch output for BANANA/Gemini image workflows.
 
+Current release: `v2.0.2`
+
 ![macOS](https://img.shields.io/badge/macOS-12%2B-black)
 ![Windows](https://img.shields.io/badge/Windows-x64-blue)
 ![React](https://img.shields.io/badge/React-19-61dafb)
@@ -51,6 +53,7 @@ The current release packaging produces three desktop builds:
 - [Data and Privacy](#data-and-privacy)
 - [Development](#development)
 - [Packaging](#packaging)
+- [Built With](#built-with)
 - [FAQ](#faq)
 
 ## Why I Built This
@@ -210,6 +213,8 @@ Important: API keys are currently stored as plain local JSON. Before sharing log
 
 Preset import/export files are normal JSON files. They contain prompt text and model settings, but not API keys.
 
+Public release packages do not include your personal API keys or your personal saved presets. API keys and saved presets are stored in the user's own local configuration directory, not bundled into the published desktop app.
+
 ## Development
 
 Requirements:
@@ -261,6 +266,15 @@ BananaBatchStudio-Windows-x64/
 ```
 
 For GitHub publishing, commit the source code and upload binary packages to GitHub Releases. The repository `.gitignore` already excludes local build outputs, app bundles, dependencies, and runtime data.
+
+## Built With
+
+Banana Batch Studio is built around a small set of focused tools and APIs:
+
+- [Google Gemini / Google AI API](https://ai.google.dev/) for image generation model access.
+- [Bun](https://bun.sh/) for the bundled local runtime.
+- [React](https://react.dev/) for the desktop web interface.
+- [Vite](https://vite.dev/) for frontend development and production builds.
 
 ## How It Works
 
